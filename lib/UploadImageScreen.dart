@@ -138,7 +138,7 @@ File file;
         child: Container(
           width: 20.0,
           height: 20.0,
-          child: CircularProgressIndicator(
+          child: CircularProgressIndicator(s
             value: event == null
                 ? 0
                 : event.cumulativeBytesLoaded / event.expectedTotalBytes,
