@@ -89,97 +89,139 @@ class UploadImageScreenState extends State  {
 List<AssetPathEntity> list;
 AssetPathEntity lista_photos;
 List<AssetEntity> assetList;
+List<String> listPath;
 int value = 0;
+bool update = false;
+List<String> listAlbuns =  new List<String>();
 
-    void getFiles() async {
-      var result = await PhotoManager.requestPermission();
+
+
+@override
+   initState()  {
+    super.initState();
+    
+}
+
+  Future<void> _addItem() async {
+
+     var result = await PhotoManager.requestPermission();
       if (result) {
            list = await PhotoManager.getAssetPathList();
-          // print(list[0].name);
-           
+          
+              for(var name in list){
+                listAlbuns.add(name.name);
+              }
+
             lista_photos = list[0];
-            assetList = await lista_photos.getAssetListPaged(0, lista_photos.assetCount);
-            value = lista_photos.assetCount;
+            assetList = await lista_photos.getAssetListPaged(0, 20);
+            listPath = new List<String>();
+            for (var i = 0; i != assetList.length; i++){
+              var file = (await assetList[i].file).path + ';' + (await assetList[i+1].file).path + ';' + (await assetList[i+2].file).path ;
+              listPath.add(file);
+              i += 2;
+              value = value + 1;
+          }
+
+      
+
       } else {
           /// if result is fail, you can call `PhotoManager.openSetting();`  to open android/ios applicaton's setting to get permission
       }
-    }
-
-
-  _addItem() {
-    setState(() {
-      value = value + 1;
-    });
-  }
+}
 
   @override
   Widget build(BuildContext context) {
-    
-    getFiles();
-File file;
-    return  Material(
-      child: Stack(children: <Widget>[
-          Container(color: Colors.black, height: 100,),
-          Container( margin: EdgeInsets.only(top: 100), 
+
+
+    var dropdownValue;
+        return
+        FutureBuilder(
+        future: _addItem(),
+        builder: (BuildContext context, AsyncSnapshot snapshot) {
+             if (snapshot.connectionState == ConnectionState.done) {
+                 return Material(
           child:
+           Stack(children: <Widget>[
+              Align(alignment: Alignment.topRight, 
+              child: Container(       
 
-            Container(
-    child: PhotoViewGallery.builder(
-      scrollPhysics: const BouncingScrollPhysics(),
-      builder: (BuildContext context, int index) {
-        return PhotoViewGalleryPageOptions(
-          imageProvider: AssetImage(widget.galleryItems[index].image),
-          initialScale: PhotoViewComputedScale.contained * 0.8,
-          heroAttributes: HeroAttributes(tag: galleryItems[index].id),
-        );
-      },
-      itemCount: galleryItems.length,
-      loadingBuilder: (context, event) => Center(
-        child: Container(
-          width: 20.0,
-          height: 20.0,
-          child: CircularProgressIndicator(s
-            value: event == null
-                ? 0
-                : event.cumulativeBytesLoaded / event.expectedTotalBytes,
+                margin: EdgeInsets.only(right: 50),
+                child: DropdownButton<String>(
+                  value: dropdownValue,
+                  icon: Icon(Icons.arrow_downward),
+                  iconSize: 24,
+                  elevation: 1,
+                  style: TextStyle(
+                    color: Colors.deepPurple),
+                    underline: Container(height: 2,color: Colors.deepPurpleAccent,),
+                    onChanged: (String newValue) {
+                      setState(() {
+                        dropdownValue = newValue;
+                        
+                        
+                        });},
+                        items: listAlbuns
+                        .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+      })
+      .toList(),
+  ),
+              )
           ),
-        ),
-      ),
-      backgroundDecoration: widget.backgroundDecoration,
-      pageController: widget.pageController,
-      // onPageChanged: onPageChanged,
-    )
-  )
+          Container( margin: EdgeInsets.only(top: 50, bottom: 10),  
+          child:
+          ListView.builder(
+          itemCount: this.value,
+          itemBuilder: (context, index) => this._buildRow(index)),  
 
-
-
-          // ListView.builder(
-          // itemCount: this.value,
-          // itemBuilder: (context, index) => this._buildRow(index))
-          // ),  
-      ],)
+          )],)
     );
-  }
+             } else
+                 return Text('Loading...');
+        },
+    );
+        
+        
+             
+       
+      }
 
-//   Future<Uint8List> _getFile(entity ) async {
-//     // File file = await entity.file;
+  _buildRow(int index)  {
 
-//   Uint8List thumbBytes = ;
+    var path = listPath[index].split(';');
 
-//     return thumbBytes;
-// }
 
-  _buildRow(int index)  async {
-    AssetEntity entity = assetList[index];
-    var image =  await entity.thumbData;
-
-    return Container(
-      decoration: new BoxDecoration(
-        borderRadius: new BorderRadius.all( Radius.circular(40.0),),
+    return Container(margin: EdgeInsets.only(top: 5, left: 12, right: 5 ),child: Row(children: <Widget>[
+      Container(
+        height: 100,width: 125, decoration: new BoxDecoration(
         image: new DecorationImage(
-          image: new MemoryImage(image,),
+          image: FileImage(new File(path[0])),
             fit: BoxFit.cover,),
             ),
+      ),
+
+Container(
+        height: 100,width: 125, decoration: new BoxDecoration(
+        image: new DecorationImage(
+          image: FileImage(new File(path[1])),
+            fit: BoxFit.cover,),
+            ),
+      ),
+      
+      Container(
+        height: 100,width: 125, decoration: new BoxDecoration(
+        image: new DecorationImage(
+          image: FileImage(new File(path[2])),
+            fit: BoxFit.cover,),
+            ),
+      ),
+
+
+    ]),) ; 
+
 
 //       FaIcon(FontAwesomeIcons.file),
 // Text(entity.title, style: TextStyle(fontSize: 20,),)
@@ -187,7 +229,6 @@ File file;
         // 
 
 
-     margin: EdgeInsets.only(top: 8, left: 40) ,)
     ;
   }
 }
